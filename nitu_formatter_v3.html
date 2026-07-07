@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ROJAN KO BUDI — Nitu Resume Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@100;300;400;700;900&family=JetBrains+Mono:wght@100;300;400&display=swap');
+:root{--bg:#04070f;--bg2:#060c18;--panel:#080e1a;--panel2:#0a1220;--cyan:#00d4ff;--cyan2:#0090bb;--cyan3:#00d4ff22;--cyan4:#00d4ff08;--orange:#ff6b2b;--gold:#ffd166;--white:#e8f4ff;--dim:#4a6080;--dimmer:#2a3850;--border:#0d2040;--border2:#1a3560;--green:#00ff88;--red:#ff4466;--glow-c:0 0 20px #00d4ff44,0 0 40px #00d4ff22;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden;}
+.bg-layer{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:60px 60px;animation:gridDrift 30s linear infinite;}
+@keyframes gridDrift{to{background-position:60px 60px;}}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.10;animation:orbFloat 20s ease-in-out infinite alternate;}
+.orb1{width:500px;height:500px;background:#00d4ff;top:-150px;right:-100px;animation-duration:18s;}
+.orb2{width:350px;height:350px;background:#ff6b2b;bottom:-100px;left:-80px;animation-duration:24s;animation-delay:-8s;}
+.orb3{width:250px;height:250px;background:#7b2fff;top:45%;left:15%;animation-duration:15s;animation-delay:-4s;}
+@keyframes orbFloat{0%{transform:translate(0,0) scale(1);}50%{transform:translate(25px,-15px) scale(1.04);}100%{transform:translate(-15px,25px) scale(0.96);}}
+.bg-scanline{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);}
+#particle-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.35;}
+.app{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 1.5rem 6rem;}
+.header{padding:2.5rem 0 2rem;text-align:center;margin-bottom:2.5rem;position:relative;}
+.header-corner{position:absolute;width:36px;height:36px;border-color:var(--cyan);border-style:solid;opacity:0.4;}
+.header-corner.tl{top:2.5rem;left:0;border-width:2px 0 0 2px;}
+.header-corner.tr{top:2.5rem;right:0;border-width:2px 2px 0 0;}
+.header-corner.bl{bottom:1.5rem;left:0;border-width:0 0 2px 2px;}
+.header-corner.br{bottom:1.5rem;right:0;border-width:0 2px 2px 0;}
+.header-badge{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan2);margin-bottom:14px;border:1px solid var(--border2);padding:4px 16px;border-radius:20px;background:var(--cyan4);}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite;box-shadow:0 0 6px var(--cyan);}
+@keyframes pulse{50%{opacity:0.3;transform:scale(0.8);}}
+.header h1{font-family:'Rajdhani',sans-serif;font-size:clamp(28px,5vw,60px);font-weight:700;letter-spacing:8px;line-height:1;margin-bottom:4px;background:linear-gradient(135deg,#ffffff 0%,#00d4ff 50%,#ffffff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-line{width:100%;height:1px;margin-top:1.5rem;background:linear-gradient(90deg,transparent,var(--cyan2),var(--orange),var(--cyan2),transparent);}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.3s;}
+.panel:focus-within{border-color:var(--cyan2);}
+.panel-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--border);}
+.panel-dot{width:8px;height:8px;border-radius:50%;}
+.panel-dot.c{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+.panel-dot.o{background:var(--orange);box-shadow:0 0 6px var(--orange);}
+.panel-dot.g{background:var(--gold);box-shadow:0 0 6px var(--gold);}
+.panel-dot.gr{background:var(--green);box-shadow:0 0 6px var(--green);}
+.panel-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--dim);flex:1;}
+.panel-stat{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dimmer);}
+.panel-body{padding:1.25rem;}
+.copy-btn{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;padding:4px 12px;background:transparent;color:var(--cyan);border:1px solid var(--cyan2);border-radius:3px;cursor:pointer;transition:all 0.2s;}
+.copy-btn:hover{background:var(--cyan3);}
+.copy-btn.copied{color:var(--green);border-color:var(--green);}
+.prompt-text{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:1rem 1.25rem;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6a9ab8;line-height:1.8;white-space:pre-wrap;max-height:280px;overflow-y:auto;user-select:all;}
+textarea{width:100%;border:1px solid var(--border);border-radius:6px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#8ab4cc;background:var(--bg2);resize:vertical;outline:none;line-height:1.7;transition:all 0.3s;}
+textarea:focus{border-color:var(--cyan2);background:#050d18;box-shadow:inset 0 0 20px var(--cyan4);color:var(--cyan);}
+textarea::placeholder{color:var(--dimmer);font-size:11px;}
+.validate-bar{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:10px;}
+.v-dot{width:8px;height:8px;border-radius:50%;background:var(--dimmer);flex-shrink:0;transition:all 0.3s;}
+.v-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
+.v-dot.err{background:var(--red);box-shadow:0 0 6px var(--red);}
+.v-msg{color:var(--dim);flex:1;}
+.v-msg.ok{color:var(--green);}
+.v-msg.err{color:var(--red);}
+.cl-toggle-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin-bottom:12px;}
+.cl-toggle-row{display:flex;align-items:center;justify-content:space-between;}
+.cl-toggle-left{display:flex;align-items:center;gap:12px;}
+.cl-icon{width:38px;height:38px;border-radius:6px;background:var(--cyan3);border:1px solid var(--cyan2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.cl-label{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;color:var(--white);}
+.cl-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:2px;}
+.toggle-wrap{position:relative;width:46px;height:25px;}
+.toggle-wrap input{display:none;}
+.toggle-track{position:absolute;inset:0;border-radius:13px;background:var(--dimmer);cursor:pointer;transition:background 0.2s;}
+.toggle-wrap input:checked+.toggle-track{background:var(--cyan);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:white;transition:left 0.2s;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.toggle-wrap input:checked~.toggle-thumb{left:24px;}
+.cl-fields{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.cl-fields-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:10px;}
+.field-row{display:flex;gap:8px;margin-bottom:8px;}
+.field-row>*{flex:1;}
+.field-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--dimmer);letter-spacing:1px;margin-bottom:4px;}
+input[type=text]{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cyan);outline:none;transition:border-color 0.2s;}
+input[type=text]:focus{border-color:var(--cyan2);}
+.btn-exec{width:100%;padding:18px;background:transparent;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:6px;border:1px solid var(--cyan);border-radius:6px;cursor:pointer;position:relative;overflow:hidden;transition:all 0.3s;margin-top:12px;text-transform:uppercase;}
+.btn-exec::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.15),transparent);transition:left 0.5s;}
+.btn-exec:hover:not(:disabled)::before{left:100%;}
+.btn-exec:hover:not(:disabled){background:rgba(0,212,255,0.08);box-shadow:var(--glow-c);text-shadow:0 0 10px var(--cyan);}
+.btn-exec:disabled{color:var(--dimmer);border-color:var(--dimmer);cursor:not-allowed;}
+.output-section{margin-top:2rem;}
+.out-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}
+.out-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:4px;background:linear-gradient(90deg,var(--white),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.success-chip{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(0,255,136,0.08);border:1px solid var(--green);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);letter-spacing:2px;}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+.tab-row{display:flex;gap:0;border-bottom:1px solid var(--border2);margin-bottom:1rem;}
+.tab-btn{padding:10px 20px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--dim);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.2s;margin-bottom:-1px;}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.tab-btn:hover:not(.active){color:var(--white);}
+.preview-shell{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:2px;box-shadow:var(--glow-c);margin-bottom:12px;}
+.preview-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);}
+.pbar-dot{width:10px;height:10px;border-radius:50%;}
+.pbar-dot.r{background:#ff5f57;}.pbar-dot.y{background:#febc2e;}.pbar-dot.g{background:#28c840;}
+.pbar-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);margin:0 auto;letter-spacing:2px;}
+.resume-preview{background:#fff;padding:36px 42px;font-family:'Times New Roman',Times,serif;font-size:10.5px;line-height:1.5;color:#000;border-radius:0 0 7px 7px;}
+.r-name{font-size:17px;font-weight:bold;text-align:center;letter-spacing:1.5px;margin-bottom:3px;}
+.r-contact{text-align:center;font-size:9.5px;color:#333;margin-bottom:5px;font-family:Arial,sans-serif;}
+.r-divider{border:none;border-top:1.2px solid #000;margin-bottom:0;}
+.r-sec{font-weight:bold;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #000;padding-bottom:2px;margin-top:10px;margin-bottom:5px;}
+.r-para{line-height:1.5;margin-bottom:4px;}
+.r-skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
+.r-skill{font-size:10.5px;line-height:1.6;padding-left:14px;position:relative;}
+.r-skill::before{content:'•';position:absolute;left:2px;}
+.r-tools{font-size:10.5px;margin-top:3px;padding-left:14px;position:relative;}
+.r-tools::before{content:'•';position:absolute;left:2px;}
+.r-ul{margin:0;padding-left:16px;}
+.r-ul li{font-size:10.5px;line-height:1.5;margin-bottom:1px;}
+.r-job-hdr{display:flex;justify-content:space-between;margin-top:7px;}
+.r-co{font-weight:bold;font-size:10.5px;}
+.r-date{font-size:10.5px;font-style:italic;}
+.r-sub{display:flex;justify-content:space-between;margin-bottom:3px;}
+.r-title{font-size:10.5px;font-style:italic;}
+.r-loc{font-size:10.5px;font-style:italic;}
+.r-edu-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;}
+.r-edu-deg{font-weight:bold;font-size:10.5px;}
+.r-edu-yr{font-size:10px;font-style:italic;}
+.r-edu-school{font-size:10.5px;font-style:italic;margin-bottom:4px;}
+.r-cert{font-size:10.5px;line-height:1.5;padding-left:16px;position:relative;margin-bottom:2px;}
+.r-cert::before{content:'•';position:absolute;left:2px;}
+.r-refs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;}
+.r-ref-name{font-weight:bold;font-size:10.5px;}
+.r-ref-det{font-size:9.5px;line-height:1.7;color:#222;}
+.pb-line{border:none;border-top:1px dashed #ccc;margin:10px 0;position:relative;}
+.pb-line::after{content:attr(data-label);position:absolute;top:-8px;right:0;font-size:8px;color:#aaa;background:white;padding:0 4px;font-family:Arial,sans-serif;}
+.edit-resume-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.edit-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel2);border-bottom:1px solid var(--border);}
+.edit-badge{font-family:'JetBrains Mono',monospace;font-size:8px;padding:3px 10px;border-radius:2px;background:rgba(255,209,102,0.15);color:var(--gold);border:1px solid var(--gold);letter-spacing:1px;}
+.edit-hint{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);flex:1;}
+.resume-edit-area{width:100%;min-height:360px;background:#fff;padding:28px 32px;font-family:'Times New Roman',Times,serif;font-size:10.5px;line-height:1.6;color:#000;border:none;outline:none;resize:vertical;}
+.cl-edit-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.cl-fixed{background:#fff;padding:1.25rem 1.75rem;font-family:'Times New Roman',Times,serif;font-size:10.8px;line-height:1.7;color:#000;}
+.cl-fixed .cl-name{font-size:13px;font-weight:bold;margin-bottom:2px;}
+.cl-fixed .cl-contact{font-size:9.5px;color:#444;margin-bottom:8px;font-family:Arial,sans-serif;}
+.cl-fixed .cl-divider{border:none;border-top:0.6px solid #666;margin-bottom:12px;}
+.cl-body-area{width:100%;min-height:220px;background:#fafafa;padding:1.25rem 1.75rem;font-family:'Times New Roman',Times,serif;font-size:10.8px;line-height:1.7;color:#000;border:none;border-top:1px solid #e0e0e0;outline:none;resize:vertical;}
+.cl-closing{background:#fff;padding:0.5rem 1.75rem 1.25rem;font-family:'Times New Roman',Times,serif;font-size:10.8px;line-height:1.7;color:#000;}
+.dl-bar{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.dl-info-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:3px;}
+.dl-info-name{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--cyan);letter-spacing:1px;}
+.dl-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-sm{padding:10px 18px;background:transparent;color:var(--dim);border:1px solid var(--border2);border-radius:4px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
+.btn-sm:hover{color:var(--white);border-color:var(--dimmer);}
+.btn-dl{padding:10px 20px;background:var(--cyan);color:var(--bg);border:none;border-radius:4px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.btn-dl:hover{background:#33ddff;box-shadow:var(--glow-c);}
+.hidden{display:none!important;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan2);}
+</style>
+</head>
+<body>
+<div class="bg-layer">
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb1"></div><div class="bg-orb orb2"></div><div class="bg-orb orb3"></div>
+  <div class="bg-scanline"></div>
+</div>
+<canvas id="particle-canvas"></canvas>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-corner tl"></div><div class="header-corner tr"></div>
+    <div class="header-corner bl"></div><div class="header-corner br"></div>
+    <div class="header-badge"><div class="badge-dot"></div>NITU · RESUME ENGINE · ONLINE</div>
+    <h1>ROJAN KO BUDI</h1>
+    <div class="header-line"></div>
+  </div>
+
+  <!-- MASTER PROMPT -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-dot c"></div><div class="panel-dot o"></div><div class="panel-dot g"></div>
+      <div class="panel-label">MASTER PROMPT</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">⎘ COPY</button>
+    </div>
+    <div class="panel-body">
+      <div class="prompt-text" id="prompt-text">You are an elite INGO and international development sector resume writer and career coach with 20+ years placing candidates at USAID, ADB, UN, WHO, World Bank, and top international NGOs. You have a near-perfect interview placement rate because your resumes sound genuinely human — confident, specific, and compelling — not generic AI output. You will now rewrite Nitu Thapa's resume for the job description provided.
+
+STEP 1 — ANALYZE THE JD FIRST:
+Extract: exact job title, top 5 required competencies, donor/program context (USAID/ADB/UN/EU), key responsibilities, required tools/systems, company name, company address, city, state/region, country, hiring manager if mentioned.
+
+STEP 2 — WRITE THE RESUME:
+
+SUMMARY (exactly 2-3 sentences — human and confident):
+- Sentence 1: Open with exact JD job title + years + domain — mirrors the JD precisely
+- Sentence 2: Name 3-4 core competencies that EXACTLY match JD requirements — specific, not generic
+- Sentence 3: Value proposition — what operational outcomes you deliver for the organization
+- BANNED: results-driven, passionate, team player, hardworking, motivated, detail-oriented
+- Never start with "I" — every word must earn its place
+
+BULLETS (INGO standard — human, specific, impactful):
+Formula: [STRONG VERB] + [WHAT you did] + [HOW — donor/tool/method] + [IMPACT/SCALE]
+
+VERB BANK (never repeat within same job):
+UMN: Managed, Coordinated, Maintained, Supported, Facilitated, Liaised, Processed, Ensured, Oversaw, Strengthened
+CDM/ADB: Managed, Organized, Supported, Maintained, Prepared, Coordinated, Facilitated, Tracked, Produced
+Empire: Managed, Coordinated, Oversaw, Organized, Administered, Monitored
+CDM/USAID: Supported, Managed, Coordinated, Maintained, Oversaw, Supervised, Assisted, Improved, Facilitated
+NMB: Supported, Provided
+
+QUANTIFICATION — minimum 5 bullets must have scale/impact:
+- Reference donor names naturally: USAID NRES Project, ADB TA SASEC Project, UMN programs
+- Use real scale: "50+ staff", "5+ districts", "20+ workshops", "5-year engagement", "30+ employees"
+- Reference compliance: donor requirements, audit standards, governance compliance
+- Sound like a real person describing real work — not a bullet-point list generator
+
+ATS STRATEGY:
+- Top 5 JD keywords appear at least twice each in different sections
+- Mirror EXACT terminology from JD
+- Include INGO-specific terms: donor compliance, stakeholder coordination, M&E support, capacity building, gender inclusion
+
+SENIORITY CALIBRATION:
+UMN (current, most senior): Sound like an experienced ADMINISTRATOR who owns the function
+CDM/ADB: Sound like a CAPABLE PROJECT COORDINATOR who delivers
+Empire: Sound like a SOLID HR/ADMIN professional
+CDM/USAID: Sound like a DEPENDABLE PROGRAM SUPPORT professional with 5 years of proven delivery
+NMB: Brief, foundational
+
+STEP 3 — WRITE THE COVER LETTER (3 paragraphs — natural, human, confident):
+- Paragraph 1: Hook — who Nitu is, what drew her to this specific role and organization, reference the employer naturally and specifically. Sound like a real person, not a template.
+- Paragraph 2: Proof — 2-3 specific achievements using real numbers, real donor names, real project names. Write like a confident professional talking, not listing bullet points.
+- Paragraph 3: Fit + Call to action — genuine enthusiasm for the mission/organization, what she brings uniquely, warm confident close. Thank them sincerely.
+- TONE: Warm, professional, human. A real person wrote this — not AI.
+- NEVER use: "I am writing to express my interest", "highly motivated", "leverage", "synergy", "utilize", "passionate about"
+- Extract company name, full address, city, country from the JD
+
+OUTPUT RULES — NEVER BREAK:
+- Return ONLY raw valid JSON — nothing before or after
+- NO markdown, NO backticks, NO explanation
+- Start with { end with } only
+- Use straight double quotes only
+
+EXACT BULLET COUNTS (count manually before returning):
+United Mission to Nepal = exactly 8 bullets
+CDM International Inc. (CDM Smith) / ADB = exactly 6 bullets
+Empire Developers & Investments Pvt. Ltd. = exactly 4 bullets
+CDM International Inc. (CDM Smith) / USAID = exactly 8 bullets
+NMB Bank Limited = exactly 2 bullets
+Key Achievements = exactly 5 items
+
+FIXED INFO (never change):
+Name: Nitu Thapa
+Contact: Kathmandu, Nepal | +977-9818038701 | thapanitu19@gmail.com
+
+FIXED JOBS (never change company, date, title, location):
+1. United Mission to Nepal | Aug 2025 – Feb 2026 | Administrative Officer — HR & Support Services Team | Kathmandu, Nepal
+2. CDM International Inc. (CDM Smith) | Jul 2024 – Jun 2025 | Administrative & Logistics Officer — ADB TA SASEC Project | Kathmandu, Nepal
+3. Empire Developers & Investments Pvt. Ltd. | Jun 2022 – Jan 2023 | Administrator / HR Officer | Kathmandu, Nepal
+4. CDM International Inc. (CDM Smith) | Jul 2017 – Apr 2022 | Administrative Assistant — USAID NRES Project | Kathmandu, Nepal
+5. NMB Bank Limited | Feb 2015 – Apr 2015 | Intern — Marketing & Operations | Kathmandu, Nepal
+
+FIXED EDUCATION (never change):
+MBA — Human Resource Management and Leadership | School of Management, Tribhuvan University | 2025
+BBS — Management | Shankar Dev Campus, Tribhuvan University | 2018
+
+FIXED CERTIFICATIONS (never change these 5):
+1. Certificate of Appreciation — USAID NRES Project (2018 & 2021)
+2. Certificate — Value Engineering Workshop, ADB Project
+3. Certificate in Public Speaking — Tribhuvan University
+4. Field Research: Women-Friendly Vocational Training Impact
+5. Published Article: Women-Centric Vocational Training in Rural Nepal
+
+FIXED REFERENCES (never change):
+Paul Chhetri | HR and Support Services Team | United Mission to Nepal | paul.chhetri@umn.org.np | +977-9822998184 / +977-9803887126
+Bhupendra Karki | Country Representative | CDM International Inc. (CDM Smith) | karkib@cdmsmith.com | +977-9851127792 / +977-9702026720
+Pramesh KC | Human Resource Manager | Empire Developer & Investments Pvt. Ltd. | prameshkc@gmail.com | +977-9851093898
+
+RETURN THIS EXACT JSON:
+{"summary":"...","skills":{"left":["skill1","skill2","skill3","skill4","skill5","skill6"],"right":["skill1","skill2","skill3","skill4","skill5","skill6"],"tools":"Microsoft Office (Excel, Word, PowerPoint, Outlook), HRIS & Digital Filing Systems"},"jobs":[{"company":"United Mission to Nepal","date":"Aug 2025 – Feb 2026","title":"Administrative Officer — HR & Support Services Team","location":"Kathmandu, Nepal","bullets":["b1","b2","b3","b4","b5","b6","b7","b8"]},{"company":"CDM International Inc. (CDM Smith)","date":"Jul 2024 – Jun 2025","title":"Administrative & Logistics Officer — ADB TA SASEC Project","location":"Kathmandu, Nepal","bullets":["b1","b2","b3","b4","b5","b6"]},{"company":"Empire Developers & Investments Pvt. Ltd.","date":"Jun 2022 – Jan 2023","title":"Administrator / HR Officer","location":"Kathmandu, Nepal","bullets":["b1","b2","b3","b4"]},{"company":"CDM International Inc. (CDM Smith)","date":"Jul 2017 – Apr 2022","title":"Administrative Assistant — USAID NRES Project","location":"Kathmandu, Nepal","bullets":["b1","b2","b3","b4","b5","b6","b7","b8"]},{"company":"NMB Bank Limited","date":"Feb 2015 – Apr 2015","title":"Intern — Marketing & Operations","location":"Kathmandu, Nepal","bullets":["b1","b2"]}],"achievements":["a1","a2","a3","a4","a5"],"cover_letter":{"company":"COMPANY_FROM_JD","address":"ADDRESS_FROM_JD","city":"CITY_FROM_JD","state":"STATE_OR_REGION_FROM_JD","zip":"ZIP_OR_POSTAL_FROM_JD","hiring_manager":"Hiring Manager","job_title":"JOB_TITLE_FROM_JD","date":"TODAYS_DATE","paragraph1":"Hook — who Nitu is, why this role...","paragraph2":"Proof — specific achievements with real numbers and donor names...","paragraph3":"Fit and confident close..."}}
+
+NITU'S CURRENT RESUME:
+[PASTE NITU'S FULL RESUME TEXT HERE]
+
+JOB DESCRIPTION:
+[PASTE THE COMPLETE JOB DESCRIPTION HERE — include title, all responsibilities, required skills, preferred skills, donor context, about the organization]</div>
+    </div>
+  </div>
+
+  <!-- JSON INPUT -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-dot c"></div>
+      <div class="panel-label">OUTPUT</div>
+      <div class="panel-stat" id="json-stat">0 B</div>
+    </div>
+    <div class="panel-body">
+      <textarea id="json-input" rows="10" placeholder="// Paste JSON output from Claude here..." oninput="onJsonInput()"></textarea>
+      <div class="validate-bar">
+        <div class="v-dot" id="v-dot"></div>
+        <div class="v-msg" id="v-msg">Waiting for JSON input...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COVER LETTER TOGGLE -->
+  <div class="cl-toggle-panel">
+    <div class="cl-toggle-row">
+      <div class="cl-toggle-left">
+        <div class="cl-icon">✉</div>
+        <div>
+          <div class="cl-label">GENERATE COVER LETTER?</div>
+          <div class="cl-sub">AI extracts company info from JD · fully editable before download</div>
+        </div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="cl-toggle" checked onchange="toggleCL()"/>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="cl-fields" id="cl-fields">
+      <div class="cl-fields-label">COMPANY DETAILS — auto-filled from JD · verify & edit</div>
+      <div class="field-row">
+        <div><div class="field-label">ORGANIZATION NAME</div><input type="text" id="cl-company" placeholder="Auto-filled from JD"/></div>
+        <div><div class="field-label">HIRING MANAGER</div><input type="text" id="cl-manager" value="Hiring Manager"/></div>
+      </div>
+      <div class="field-row">
+        <div><div class="field-label">STREET ADDRESS</div><input type="text" id="cl-address" placeholder="Auto-filled from JD"/></div>
+        <div><div class="field-label">CITY</div><input type="text" id="cl-city" placeholder="City"/></div>
+        <div style="flex:0.5;"><div class="field-label">STATE/REGION</div><input type="text" id="cl-state" placeholder="State"/></div>
+        <div style="flex:0.7;"><div class="field-label">ZIP/POSTAL</div><input type="text" id="cl-zip" placeholder="ZIP"/></div>
+      </div>
+      <div class="field-row">
+        <div><div class="field-label">JOB TITLE (for subject line)</div><input type="text" id="cl-jobtitle" placeholder="Auto-filled from JD"/></div>
+        <div><div class="field-label">DATE</div><input type="text" id="cl-date" placeholder="May 11, 2025"/></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-exec" id="btn-format" disabled onclick="formatAll()">
+    ⚡ &nbsp; FORMAT RESUME + COVER LETTER
+  </button>
+
+  <!-- OUTPUT -->
+  <div class="output-section hidden" id="output-section">
+    <div class="out-header">
+      <div class="out-title">OUTPUT</div>
+      <div class="success-chip"><div class="chip-dot"></div>3 PAGES · READY</div>
+    </div>
+
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-resume" onclick="switchTab('resume')">RESUME</button>
+      <button class="tab-btn" id="tab-cl" onclick="switchTab('cl')">COVER LETTER</button>
+    </div>
+
+    <!-- RESUME TAB -->
+    <div id="pane-resume">
+      <div class="preview-shell">
+        <div class="preview-bar">
+          <div class="pbar-dot r"></div><div class="pbar-dot y"></div><div class="pbar-dot g"></div>
+          <div class="pbar-title">NITU_THAPA_RESUME.PDF — PREVIEW</div>
+        </div>
+        <div class="resume-preview" id="resume-preview"></div>
+      </div>
+      <div class="edit-resume-wrap">
+        <div class="edit-bar">
+          <div class="panel-dot gr"></div>
+          <div class="edit-hint">EDIT BELOW — preview updates live · downloaded PDF reflects your edits</div>
+          <div class="edit-badge">EDITABLE</div>
+        </div>
+        <textarea class="resume-edit-area" id="resume-edit" spellcheck="true" oninput="syncResumePreview()"></textarea>
+        <div style="padding:6px 14px 8px;background:var(--panel2);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dimmer);border-top:1px solid var(--border);line-height:1.8;">
+          FORMAT GUIDE — keep tags: ==SUMMARY== ==SKILLS== ==JOB1== through ==JOB5== ==ACHIEVEMENTS== ==EDUCATION== ==CERTS== &nbsp;·&nbsp; Edit text after | only &nbsp;·&nbsp; One BULLET per line
+        </div>
+      </div>
+    </div>
+
+    <!-- COVER LETTER TAB -->
+    <div id="pane-cl" class="hidden">
+      <div class="cl-edit-wrap">
+        <div class="edit-bar">
+          <div class="panel-dot gr"></div>
+          <div class="edit-hint">EDIT COVER LETTER — date, address, subject, and body are all editable · delete any line to remove it</div>
+          <div class="edit-badge">EDITABLE</div>
+        </div>
+        <div class="cl-fixed">
+          <div class="cl-name">Nitu Thapa</div>
+          <div class="cl-contact">Kathmandu, Nepal &nbsp;|&nbsp; +977-9818038701 &nbsp;|&nbsp; thapanitu19@gmail.com</div>
+          <hr class="cl-divider" style="margin-bottom:0;"/>
+        </div>
+        <textarea class="cl-body-area" id="cl-body-edit" style="min-height:420px;" placeholder="Date
+
+Hiring Manager
+Organization Name
+Street Address, City, State ZIP
+
+Re: Job Title Position
+
+Dear Hiring Manager,
+
+Body paragraphs..."></textarea>
+        <div class="cl-closing">
+          <div>Sincerely,</div>
+          <div style="height:22px;"></div>
+          <div style="font-weight:bold;">Nitu Thapa</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOWNLOAD -->
+    <div class="dl-bar">
+      <div>
+        <div class="dl-info-label">OUTPUT FILES</div>
+        <div class="dl-info-name">NITU_THAPA_RESUME.PDF</div>
+      </div>
+      <div class="dl-actions">
+        <button class="btn-sm" onclick="reset()">← RESET</button>
+        <button class="btn-sm" onclick="downloadResume()">⬇ RESUME ONLY</button>
+        <button class="btn-dl" onclick="downloadBoth()" id="btn-both">⬇ RESUME + COVER LETTER</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICLES -->
+<script>
+const C=document.getElementById('particle-canvas');
+const cx=C.getContext('2d');
+C.width=window.innerWidth;C.height=window.innerHeight;
+const pts=Array.from({length:50},()=>({x:Math.random()*C.width,y:Math.random()*C.height,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.4+.15}));
+function draw(){cx.clearRect(0,0,C.width,C.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=C.width;if(p.x>C.width)p.x=0;if(p.y<0)p.y=C.height;if(p.y>C.height)p.y=0;cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle=`rgba(0,212,255,${p.o})`;cx.fill();});pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<110){cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.strokeStyle=`rgba(0,212,255,${(1-d/110)*.05})`;cx.lineWidth=.5;cx.stroke();}}));requestAnimationFrame(draw);}
+draw();
+window.addEventListener('resize',()=>{C.width=window.innerWidth;C.height=window.innerHeight;});
+</script>
+
+<script>
+let _d = null;
+
+function copyPrompt(){
+  const text=document.getElementById('prompt-text').innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='✓ COPIED';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='⎘ COPY';btn.classList.remove('copied');},2500);
+  });
+}
+
+function toggleCL(){
+  const on=document.getElementById('cl-toggle').checked;
+  document.getElementById('cl-fields').style.display=on?'block':'none';
+  const btn=document.getElementById('btn-both');
+  if(btn)btn.style.display=on?'':'none';
+}
+
+function onJsonInput(){
+  const raw=document.getElementById('json-input').value.trim();
+  const dot=document.getElementById('v-dot');
+  const msg=document.getElementById('v-msg');
+  const btn=document.getElementById('btn-format');
+  document.getElementById('json-stat').textContent=raw.length.toLocaleString()+' B';
+  if(!raw){dot.className='v-dot';msg.className='v-msg';msg.textContent='Waiting for JSON input...';btn.disabled=true;return;}
+  try{
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const d=JSON.parse(clean);
+    if(!d.summary||!d.skills||!d.jobs||!d.achievements)throw new Error('Missing required fields: summary, skills, jobs, achievements');
+    const counts=[8,6,4,8,2];let warn='';
+    d.jobs.forEach((j,i)=>{if(j.bullets.length!==counts[i])warn+=` Job${i+1}:${j.bullets.length}≠${counts[i]}`;});
+    if(d.achievements.length!==5) warn+=` Achievements:${d.achievements.length}≠5`;
+    if(warn){dot.className='v-dot err';msg.className='v-msg err';msg.textContent='⚠ Count mismatch:'+warn;btn.disabled=false;}
+    else{dot.className='v-dot ok';msg.className='v-msg ok';msg.textContent='✓ Valid JSON — 5 jobs, achievements correct — ready!';btn.disabled=false;}
+    // Auto-fill CL fields
+    if(d.cover_letter){
+      const cl=d.cover_letter;
+      const map={company:'cl-company',address:'cl-address',city:'cl-city',state:'cl-state',zip:'cl-zip',hiring_manager:'cl-manager',job_title:'cl-jobtitle',date:'cl-date'};
+      Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);const v=cleanVal(cl[k]);if(el&&v)el.value=v;});
+    }
+  }catch(e){dot.className='v-dot err';msg.className='v-msg err';msg.textContent='✗ Invalid JSON: '+e.message;btn.disabled=true;}
+}
+
+function switchTab(t){
+  document.getElementById('tab-resume').className='tab-btn'+(t==='resume'?' active':'');
+  document.getElementById('tab-cl').className='tab-btn'+(t==='cl'?' active':'');
+  document.getElementById('pane-resume').classList.toggle('hidden',t!=='resume');
+  document.getElementById('pane-cl').classList.toggle('hidden',t!=='cl');
+}
+
+function formatAll(){
+  const raw=document.getElementById('json-input').value.trim();
+  const clean=raw.replace(/```json|```/g,'').trim();
+  _d=JSON.parse(clean);
+  renderPreview(_d);
+  populateEdit(_d);
+  if(document.getElementById('cl-toggle').checked)populateCL(_d);
+  document.getElementById('output-section').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('output-section').scrollIntoView({behavior:'smooth'}),100);
+}
+
+// ── Render preview ─────────────────────────────────────────────────────────
+function renderPreview(d){
+  const lsk=(d.skills.left||[]).map(s=>`<div class="r-skill">${s}</div>`).join('');
+  const rsk=(d.skills.right||[]).map(s=>`<div class="r-skill">${s}</div>`).join('');
+  const tools=d.skills.tools||'Microsoft Office (Excel, Word, PowerPoint, Outlook), HRIS & Digital Filing Systems';
+  const job0=d.jobs[0]?jobHTML(d.jobs[0]):'';
+  const jobs123=d.jobs.slice(1,4).map(jobHTML).join('');
+  const job4=d.jobs[4]?jobHTML(d.jobs[4]):'';
+  const ach=(d.achievements||[]).map(a=>`<div class="r-cert">${a}</div>`).join('');
+  const edu=`
+    <div class="r-edu-row"><span class="r-edu-deg">MBA — Human Resource Management and Leadership</span><span class="r-edu-yr">2025</span></div>
+    <div class="r-edu-school">School of Management, Tribhuvan University</div>
+    <div class="r-edu-row" style="margin-top:5px;"><span class="r-edu-deg">BBS — Management</span><span class="r-edu-yr">2018</span></div>
+    <div class="r-edu-school">Shankar Dev Campus, Tribhuvan University</div>`;
+  const certs=[
+    "Certificate of Appreciation — USAID NRES Project (2018 & 2021), awarded for outstanding administrative and donor compliance contributions.",
+    "Certificate — Value Engineering Workshop, ADB Project, building procurement optimization and cost-management competencies.",
+    "Certificate in Public Speaking — Tribhuvan University, enhancing stakeholder communication and presentation skills.",
+    "Field Research: Women-Friendly Vocational Training Impact — multi-district gender-inclusive skills development study.",
+    "Published Article: Women-Centric Vocational Training in Rural Nepal — contribution to INGO knowledge base and gender advocacy.",
+  ].map(c=>`<div class="r-cert">${c}</div>`).join('');
+  const refs=`<div class="r-refs">
+    <div><div class="r-ref-name">Paul Chhetri</div><div class="r-ref-det">HR and Support Services Team<br/>United Mission to Nepal<br/>paul.chhetri@umn.org.np<br/>+977-9822998184</div></div>
+    <div><div class="r-ref-name">Bhupendra Karki</div><div class="r-ref-det">Country Representative<br/>CDM International Inc.<br/>karkib@cdmsmith.com<br/>+977-9851127792</div></div>
+    <div><div class="r-ref-name">Pramesh KC</div><div class="r-ref-det">Human Resource Manager<br/>Empire Developer & Investments<br/>prameshkc@gmail.com<br/>+977-9851093898</div></div>
+  </div>`;
+  document.getElementById('resume-preview').innerHTML=`
+    <div class="r-name">NITU THAPA</div>
+    <div class="r-contact">Kathmandu, Nepal &nbsp;|&nbsp; +977-9818038701 &nbsp;|&nbsp; thapanitu19@gmail.com</div>
+    <hr class="r-divider"/>
+    <div class="r-sec">Professional Summary</div>
+    <div class="r-para">${d.summary}</div>
+    <div class="r-sec">Core Skills</div>
+    <div class="r-skills-grid">${lsk}${rsk}</div>
+    <div class="r-tools"><strong>Tools:</strong> ${tools}</div>
+    <div class="r-sec">Professional Experience</div>
+    ${job0}
+    <hr class="pb-line" data-label="PAGE 2"/>
+    ${jobs123}
+    <hr class="pb-line" data-label="PAGE 3"/>
+    ${job4}
+    <div class="r-sec">Key Achievements</div>${ach}
+    <div class="r-sec">Education</div>${edu}
+    <div class="r-sec">Certifications & Publications</div>${certs}
+    <div class="r-sec">References</div>${refs}`;
+}
+
+function jobHTML(j){
+  return `<div><div class="r-job-hdr"><span class="r-co">${j.company}</span><span class="r-date">${j.date}</span></div><div class="r-sub"><span class="r-title">${j.title}</span><span class="r-loc">${j.location}</span></div><ul class="r-ul">${j.bullets.map(b=>`<li>${b}</li>`).join('')}</ul></div>`;
+}
+
+// ── Populate editable textarea ─────────────────────────────────────────────
+function populateEdit(d){
+  let txt='==SUMMARY==\n'+d.summary+'\n\n';
+  txt+='==SKILLS==\n';
+  (d.skills.left||[]).forEach((s,i)=>txt+=`LEFT${i+1}| ${s}\n`);
+  (d.skills.right||[]).forEach((s,i)=>txt+=`RIGHT${i+1}| ${s}\n`);
+  txt+=`TOOLS| ${d.skills.tools||'Microsoft Office (Excel, Word, PowerPoint, Outlook), HRIS & Digital Filing Systems'}\n\n`;
+  d.jobs.forEach((j,i)=>{
+    txt+=`==JOB${i+1}==\n`;
+    txt+=`COMPANY| ${j.company}\nDATE| ${j.date}\nTITLE| ${j.title}\nLOCATION| ${j.location}\n`;
+    j.bullets.forEach((b,bi)=>txt+=`BULLET${bi+1}| ${b}\n`);
+    txt+='\n';
+  });
+  txt+='==ACHIEVEMENTS==\n';
+  (d.achievements||[]).forEach((a,i)=>txt+=`ACH${i+1}| ${a}\n`);
+  txt+='\n==EDUCATION==\nFixed — MBA & BBS (edit in PDF section only)\n\n';
+  txt+='==CERTS==\nFixed — 5 certifications (edit in PDF section only)\n';
+  document.getElementById('resume-edit').value=txt;
+}
+
+// ── Parse edited textarea ──────────────────────────────────────────────────
+function parseEdit(){
+  const raw=document.getElementById('resume-edit').value;
+  const lines=raw.split('\n');
+  const result={summary:'',skills:{left:[],right:[],tools:''},jobs:[],achievements:[]};
+  let section='',curJob=null;
+  lines.forEach(line=>{
+    const t=line.trim();if(!t)return;
+    if(t==='==SUMMARY=='){section='summary';return;}
+    if(t==='==SKILLS=='){section='skills';return;}
+    if(t==='==ACHIEVEMENTS=='){section='ach';return;}
+    if(t==='==EDUCATION=='||t==='==CERTS=='){section='fixed';return;}
+    const jm=t.match(/^==JOB(\d+)==$/);
+    if(jm){if(curJob)result.jobs.push(curJob);curJob={company:'',date:'',title:'',location:'',bullets:[]};section='job';return;}
+    if(section==='summary'){result.summary+=(result.summary?' ':'')+t;return;}
+    if(section==='skills'){
+      const idx=t.indexOf('|');if(idx<0)return;
+      const key=t.slice(0,idx).trim();const val=t.slice(idx+1).trim();
+      if(key.startsWith('LEFT'))result.skills.left.push(val);
+      else if(key.startsWith('RIGHT'))result.skills.right.push(val);
+      else if(key==='TOOLS')result.skills.tools=val;
+      return;
+    }
+    if(section==='job'&&curJob){
+      const idx=t.indexOf('|');if(idx<0)return;
+      const key=t.slice(0,idx).trim();const val=t.slice(idx+1).trim();
+      if(key==='COMPANY')curJob.company=val;
+      else if(key==='DATE')curJob.date=val;
+      else if(key==='TITLE')curJob.title=val;
+      else if(key==='LOCATION')curJob.location=val;
+      else if(key.startsWith('BULLET'))curJob.bullets.push(val);
+      return;
+    }
+    if(section==='ach'){
+      const idx=t.indexOf('|');if(idx<0)return;
+      result.achievements.push(t.slice(idx+1).trim());
+      return;
+    }
+  });
+  if(curJob)result.jobs.push(curJob);
+  return result;
+}
+
+// ── Sync preview live ──────────────────────────────────────────────────────
+function syncResumePreview(){
+  try{
+    const d=parseEdit();
+    if(!d||!d.summary||!d.jobs.length)return;
+    // Merge parsed with fixed data (_d for edu/certs/refs)
+    const merged={...d,achievements:d.achievements.length?d.achievements:(_d?_d.achievements:[])};
+    renderPreview(merged);
+  }catch(e){}
+}
+
+// ── Clean placeholder junk from AI-extracted values ────────────────────────
+function cleanVal(v){
+  if(!v)return'';
+  const s=String(v).trim();
+  if(/^(not\s*specified|not\s*provided|not\s*available|unknown|n\/?a|none|null|undefined|-|_?(street_)?address_from_jd|city_from_jd|state_from_jd|zip_from_jd|company_name_from_jd|job_title_from_jd|todays_date)$/i.test(s))return'';
+  if(s===s.toUpperCase()&&/_/.test(s))return'';
+  return s;
+}
+
+// ── Populate cover letter ──────────────────────────────────────────────────
+function populateCL(d){
+  const cl=d.cover_letter||{};
+  const manager=cleanVal(document.getElementById('cl-manager').value)||cleanVal(cl.hiring_manager)||'Hiring Manager';
+  const company=cleanVal(document.getElementById('cl-company').value)||cleanVal(cl.company)||'';
+  const address=cleanVal(document.getElementById('cl-address').value)||cleanVal(cl.address)||'';
+  const city=cleanVal(document.getElementById('cl-city').value)||cleanVal(cl.city)||'';
+  const state=cleanVal(document.getElementById('cl-state').value)||cleanVal(cl.state)||'';
+  const zip=cleanVal(document.getElementById('cl-zip').value)||cleanVal(cl.zip)||'';
+  const jobtitle=cleanVal(document.getElementById('cl-jobtitle').value)||cleanVal(cl.job_title)||'';
+  const dateVal=cleanVal(document.getElementById('cl-date').value)||cleanVal(cl.date)||new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  // Address line — missing parts are dropped
+  const cityStZip=[city,[state,zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const fullAddress=[address,cityStZip].filter(Boolean).join(', ');
+  const recipient=[manager,company,fullAddress].filter(Boolean).join('\n');
+
+  const parts=[
+    dateVal,
+    recipient,
+    jobtitle?`Re: ${jobtitle} Position`:'',
+    `Dear ${manager},`,
+    cl.paragraph1||'',
+    cl.paragraph2||'',
+    cl.paragraph3||''
+  ].filter(p=>p&&p.trim());
+
+  document.getElementById('cl-body-edit').value=parts.join('\n\n');
+}
+
+// ── DOWNLOAD RESUME — locked 3-page format ────────────────────────────────
+function downloadResume(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt',format:'letter',orientation:'portrait'});
+
+  // ── Constants — LOCKED from calibrated Python generator ────────────────
+  const PW=612,PH=792;
+  const ML=0.58*72,CW=PW-ML-ML,MT=36,MB=33;
+  const SZ_NAME=17,SZ_CONTACT=10,SZ_SEC=11,SZ_BODY=10.8;
+  const LH=16.8,SEC_PRE=13,SEC_POST=15,GAP_HDR=16,JOB_GAP=5,EDU_GAP=8;
+
+  let y=MT+4;
+
+  // ── 3 hard page breaks ──────────────────────────────────────────────────
+  function forcePage(){doc.addPage();y=MT+4;}
+  function setF(s,z){doc.setFont('times',s||'normal');doc.setFontSize(z||SZ_BODY);}
+  function split(t,mw,z){setF('normal',z||SZ_BODY);return doc.splitTextToSize(t,mw);}
+  function dn(h){y+=h;}
+
+  function drawSection(title){
+    dn(SEC_PRE);setF('bold',SZ_SEC);doc.text(title.toUpperCase(),ML,y);dn(4);
+    doc.setDrawColor(0,0,0);doc.setLineWidth(0.8);doc.line(ML,y,ML+CW,y);dn(SEC_POST);
+  }
+  function drawPara(txt){split(txt,CW).forEach(l=>{setF('normal');doc.text(l,ML,y);dn(LH);});}
+  function drawBullet(txt){
+    split(txt,CW-22).forEach((l,i)=>{setF('normal');if(i===0)doc.text('\u2022',ML+10,y);doc.text(l,ML+21,y);dn(LH);});
+  }
+  function drawJob(job){
+    setF('bold');doc.text(job.company,ML,y);setF('italic');doc.text(job.date,ML+CW,y,{align:'right'});dn(LH);
+    setF('italic');doc.text(job.title,ML,y);doc.text(job.location,ML+CW,y,{align:'right'});dn(LH);
+    job.bullets.forEach(b=>drawBullet(b));dn(JOB_GAP);
+  }
+
+  // Use edited version if available
+  let d=_d;
+  try{const e=parseEdit();if(e&&e.summary&&e.jobs.length>0)d={...e,achievements:e.achievements.length?e.achievements:_d.achievements};}catch(err){}
+
+  doc.setTextColor(0,0,0);
+
+  // ══ PAGE 1: Header + Summary + Skills + Exp Header + UMN ════════════════
+  setF('bold',SZ_NAME);doc.text('NITU THAPA',PW/2,y,{align:'center'});dn(GAP_HDR);
+  setF('normal',SZ_CONTACT);doc.text('Kathmandu, Nepal   |   +977-9818038701   |   thapanitu19@gmail.com',PW/2,y,{align:'center'});
+  dn(GAP_HDR-2);
+  doc.setLineWidth(1.2);doc.line(ML,y,ML+CW,y);dn(12);
+
+  drawSection('Professional Summary');drawPara(d.summary);
+  drawSection('Core Skills');
+
+  // 2-column skills
+  const lsk=d.skills.left||[];const rsk=d.skills.right||[];
+  const baseY=y;
+  lsk.forEach(s=>{setF('normal');doc.text('\u2022',ML+9,y);doc.text(s,ML+18,y);dn(LH);});
+  let ry=baseY;
+  rsk.forEach(s=>{setF('normal');doc.text('\u2022',ML+CW/2+9,ry);doc.text(s,ML+CW/2+18,ry);ry+=LH;});
+  const tl='Tools: ';const tlw=doc.getTextWidth(tl);
+  setF('bold');doc.text(tl,ML+9,y);setF('normal');doc.text(d.skills.tools||'Microsoft Office (Excel, Word, PowerPoint, Outlook), HRIS & Digital Filing Systems',ML+9+tlw,y);dn(LH);
+
+  drawSection('Professional Experience');
+  // JOB 1 — UMN — ALWAYS ENDS PAGE 1
+  if(d.jobs[0])drawJob(d.jobs[0]);
+
+  // ══ PAGE 2: CDM/ADB + Empire + CDM/USAID ════════════════════════════════
+  forcePage();
+  if(d.jobs[1])drawJob(d.jobs[1]);
+  if(d.jobs[2])drawJob(d.jobs[2]);
+  if(d.jobs[3])drawJob(d.jobs[3]);
+
+  // ══ PAGE 3: NMB + Achievements + Education + Certs + Refs ═══════════════
+  forcePage();
+  if(d.jobs[4])drawJob(d.jobs[4]);
+
+  drawSection('Key Achievements');
+  (d.achievements||[]).forEach(a=>drawBullet(a));
+
+  drawSection('Education');
+  setF('bold');doc.text('MBA \u2014 Human Resource Management and Leadership',ML,y);
+  setF('italic');doc.text('2025',ML+CW,y,{align:'right'});dn(LH);
+  setF('italic');doc.text('School of Management, Tribhuvan University',ML,y);dn(LH+EDU_GAP);
+  setF('bold');doc.text('BBS \u2014 Management',ML,y);
+  setF('italic');doc.text('2018',ML+CW,y,{align:'right'});dn(LH);
+  setF('italic');doc.text('Shankar Dev Campus, Tribhuvan University',ML,y);dn(LH+EDU_GAP);
+
+  drawSection('Certifications & Publications');
+  [
+    'Certificate of Appreciation \u2014 USAID NRES Project (2018 & 2021), awarded for outstanding administrative and donor compliance contributions.',
+    'Certificate \u2014 Value Engineering Workshop, ADB Project, building procurement optimization and cost-management competencies.',
+    'Certificate in Public Speaking \u2014 Tribhuvan University, enhancing stakeholder communication and presentation skills.',
+    'Field Research: Women-Friendly Vocational Training Impact \u2014 multi-district gender-inclusive skills development study.',
+    'Published Article: Women-Centric Vocational Training in Rural Nepal \u2014 contribution to INGO knowledge base and gender advocacy.',
+  ].forEach(ct=>drawBullet(ct));
+
+  drawSection('References');
+  const refs=[
+    {name:'Paul Chhetri',lines:['HR and Support Services Team','United Mission to Nepal','paul.chhetri@umn.org.np','+977-9822998184 / +977-9803887126']},
+    {name:'Bhupendra Karki',lines:['Country Representative','CDM International Inc. (CDM Smith)','karkib@cdmsmith.com','+977-9851127792 / +977-9702026720']},
+    {name:'Pramesh KC',lines:['Human Resource Manager','Empire Developer & Investments Pvt. Ltd.','prameshkc@gmail.com','+977-9851093898']},
+  ];
+  const refY=y;const colW=CW/3;
+  refs.forEach((ref,i)=>{
+    const rx=ML+i*colW;let ry2=refY;
+    setF('bold');doc.text(ref.name,rx,ry2);ry2+=LH;
+    ref.lines.forEach(l=>{setF('normal',9.5);doc.text(l,rx,ry2);ry2+=LH-1;});
+  });
+
+  doc.save('Nitu_Thapa_Resume.pdf');
+}
+
+// ── DOWNLOAD COVER LETTER ─────────────────────────────────────────────────
+function downloadCoverLetter(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt',format:'letter',orientation:'portrait'});
+  const PW=612;const ML=0.85*72;const CW=PW-ML-ML;const MT=0.80*72;
+  const SZ_NAME=14,SZ_CONTACT=10,SZ_BODY=11.5,LH=17.5,PARA_GAP=14;
+  let y=MT;
+  function setF(s,z){doc.setFont('times',s||'normal');doc.setFontSize(z||SZ_BODY);}
+  function dn(h){y+=h;}
+  function drawPara(txt,gap){
+    doc.setFont('times','normal');doc.setFontSize(SZ_BODY);
+    doc.splitTextToSize(txt,CW).forEach(l=>{doc.text(l,ML,y);dn(LH);});
+    dn(gap||PARA_GAP);
+  }
+  doc.setTextColor(0,0,0);
+  setF('bold',SZ_NAME);doc.text('Nitu Thapa',ML,y);dn(LH-2);
+  setF('normal',SZ_CONTACT);doc.text('Kathmandu, Nepal  |  +977-9818038701  |  thapanitu19@gmail.com',ML,y);dn(LH-2);
+  dn(6);doc.setLineWidth(0.6);doc.setDrawColor(100,100,100);doc.line(ML,y,ML+CW,y);dn(18);
+  // Letter content — everything comes from the single editable area.
+  // Blocks separated by blank lines; lines starting with "Re:" render bold.
+  const letterText=document.getElementById('cl-body-edit').value;
+  const blocks=letterText.split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean);
+  blocks.forEach((block,i)=>{
+    block.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
+      const isSubject=/^re\s*:/i.test(line);
+      setF(isSubject?'bold':'normal',SZ_BODY);
+      doc.splitTextToSize(line,CW).forEach(wrapped=>{doc.text(wrapped,ML,y);dn(LH);});
+    });
+    dn(i<blocks.length-1?PARA_GAP:PARA_GAP+4);
+  });
+  setF('normal');doc.text('Sincerely,',ML,y);dn(LH*2.8);
+  setF('bold');doc.text('Nitu Thapa',ML,y);
+  doc.save('Nitu_Thapa_Cover_Letter.pdf');
+}
+
+function downloadBoth(){downloadResume();setTimeout(()=>downloadCoverLetter(),600);}
+
+function reset(){
+  _d=null;
+  document.getElementById('json-input').value='';
+  document.getElementById('json-stat').textContent='0 B';
+  document.getElementById('v-dot').className='v-dot';
+  document.getElementById('v-msg').className='v-msg';
+  document.getElementById('v-msg').textContent='Waiting for JSON input...';
+  document.getElementById('btn-format').disabled=true;
+  document.getElementById('output-section').classList.add('hidden');
+  ['cl-company','cl-address','cl-city','cl-state','cl-zip','cl-jobtitle','cl-date','cl-body-edit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
